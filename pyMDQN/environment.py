@@ -8,6 +8,9 @@ import socket
 import time
 from PIL import Image
 import config as dcfg #default config
+import json
+import sys
+import io
 
 
 
@@ -30,6 +33,7 @@ class Environment:
 		while(not flag_connection):
 			try:
 				self.client =self.socket.connect((host, port))
+				self.socket.settimeout(20.0)
 				flag_connection = True
 			except socket.error:
 				print("Can't connect with robot! Trying again...")
@@ -66,17 +70,54 @@ class Environment:
 		return proc_image.unsqueeze(0),proc_depth.unsqueeze(0)
 
 	
+	def is_utf8(self, data):
+		try:
+			data.decode('utf-8')
+			return True
+		except UnicodeDecodeError:
+			return False
+
 	def send_data_to_pepper(self,data):
 		print('Send data connected to Pepper')
 		self.socket.send(data.encode())
 		print('Sending data to Pepper')
-		while True:
-			data = self.socket.recv(1024).decode()
-			if data:
-				return float(data.replace(',','.'))
-			break
-		print("Connected with the server")
-		return 0
+		start_char = '{'
+		end_char = '}'
+		buffer = ""
+		start_flag = False
+		try:
+			while True:
+				data = self.socket.recv(65577).decode('utf-8')
+				if not data:
+					break
+				
+				if start_char in data and not start_flag:
+					start_flag = True
+					buffer += data
+
+				elif start_flag: 
+					buffer += data
+
+				if end_char in data and  start_flag:
+					start_flag = False
+					break
+				#json_data = json.loads(data)
+				
+				#if data:
+				#	return float(data.replace(',','.'))
+				
+			json_data = json.loads(buffer)
+			print("Complete data received")
+			image_data = json_data['image']
+			image_data = io.BytesIO(bytes(image_data))
+			image = Image.open(image_data)
+
+			#print("Connected with the server")
+			return float(json_data["reward"]), np.array(image)
+
+		except TimeoutError as err:
+			print("No data received")
+			return 0, None
 
 	def perform_action(self,action,step):
 		r=self.send_data_to_pepper(action)

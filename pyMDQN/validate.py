@@ -285,7 +285,7 @@ def main(cfg,ep):
 	command = abspath(join(directory,command))
 
 
-	process = openSim(process,command)
+	#process = openSim(process,command)
 	env=Environment(cfg,epi=name_ep)
 
 	env.send_data_to_pepper("start")

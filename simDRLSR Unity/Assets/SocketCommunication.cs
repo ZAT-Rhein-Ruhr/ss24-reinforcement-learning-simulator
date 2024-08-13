@@ -243,6 +243,33 @@ public class SocketCommunication : MonoBehaviour
         }
     }
 
+    private Texture2D renderImage(Camera camera)
+    {
+        // The Render Texture in RenderTexture.active is the one
+        // that will be read by ReadPixels.
+        var currentRT = RenderTexture.active;
+        RenderTexture.active = camera.targetTexture;
+
+        // Render the camera's view.
+        camera.Render();
+
+        // Make a new texture and read the active Render Texture into it.
+        Texture2D image = new Texture2D(camera.targetTexture.width, camera.targetTexture.height);
+        image.ReadPixels(new Rect(0, 0, camera.targetTexture.width, camera.targetTexture.height), 0, 0);
+        image.Apply();
+
+        // Replace the original active Render Texture.
+        RenderTexture.active = currentRT;
+        return image;
+    }
+
+    private Texture2D getImage()
+    {
+        Camera pepperHeadCamera = GameObject.Find("RGB Camera").GetComponent<Camera>();
+        Texture2D image = renderImage(pepperHeadCamera);
+        Debug.Log("Rendered image height: " + image.height + ", and width: " + image.width);
+        return image;
+    }
  
     private bool pauseSimulation()
     {
@@ -321,12 +348,13 @@ public class SocketCommunication : MonoBehaviour
     {
         try
         {
-            print("Sending data");
-            string stringData = data;
-            StreamWriter writer = new StreamWriter(client.tcp.GetStream());
-            writer.WriteLine(stringData);
-            writer.Flush();     
-            print("Data sended!");      
+            Texture2D image = getImage();
+            PepperResponse response = new PepperResponse(data, image);
+            string json = JsonUtility.ToJson(response);
+            byte[] bytes = Encoding.UTF8.GetBytes(json);
+            Log("Sending " + bytes.Length + " bytes");
+            client.tcp.GetStream().Write(bytes, 0, bytes.Length);
+            print("Data sent!");      
         }
         catch (Exception e)
         {
@@ -340,12 +368,14 @@ public class SocketCommunication : MonoBehaviour
     {
         try
         {
-            print("Sending reward");
-            string stringData = data;
-            StreamWriter writer = new StreamWriter(client.tcp.GetStream());
-            writer.WriteLine(stringData);
-            writer.Flush();     
-            //print("Reward sended!");      
+            Texture2D image = getImage();
+            PepperResponse response = new PepperResponse(data, image);
+            string json = JsonUtility.ToJson(response);
+            byte[] bytes = Encoding.UTF8.GetBytes(json);
+            Log("Sending " + bytes.Length + " bytes");
+            client.tcp.GetStream().Write(bytes, 0, bytes.Length);
+            print("Data sent!");  
+                  
         }
         catch (Exception e)
         {
@@ -396,5 +426,17 @@ public class TcpServerClient
         tcp.GetStream().Close();
         tcp.Close();
         return true;
+    }
+}
+
+[Serializable]
+public struct PepperResponse
+{
+    public string reward;
+    public byte[] image;
+
+    public PepperResponse(string success, Texture2D texture) {
+        reward = success;
+        image = texture.EncodeToPNG();
     }
 }
