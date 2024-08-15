@@ -32,7 +32,7 @@ public class SocketImageStreaming : MonoBehaviour
         disconnectList = new List<TcpServerClient>();
         try
         {
-            server = new TcpListener(IPAddress.Parse(ip), port);
+            server = new TcpListener(IPAddress.Any, port);
             server.Start();
 
             startListening();
@@ -132,7 +132,6 @@ public class SocketImageStreaming : MonoBehaviour
     {
         Camera pepperHeadCamera = GameObject.Find("RGB Camera").GetComponent<Camera>();
         Texture2D image = renderImage(pepperHeadCamera);
-        Debug.Log("Rendered image height: " + image.height + ", and width: " + image.width);
         return image;
     }
 
