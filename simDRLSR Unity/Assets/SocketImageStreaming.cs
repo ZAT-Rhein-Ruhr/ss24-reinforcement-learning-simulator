@@ -14,8 +14,8 @@ using UnityEngine.SceneManagement;
 public class SocketImageStreaming : MonoBehaviour
 {
 
-    private int port = 12374;
-    private string ip = "0.0.0.0";
+    public int port = 12374;
+    public string ip = "0.0.0.0";
 
     private TcpServerClient client;
     private List<TcpServerClient> disconnectList;
@@ -32,7 +32,7 @@ public class SocketImageStreaming : MonoBehaviour
         disconnectList = new List<TcpServerClient>();
         try
         {
-            server = new TcpListener(IPAddress.Any, port);
+            server = new TcpListener(IPAddress.Parse(ip), port);
             server.Start();
 
             startListening();
